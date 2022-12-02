@@ -5,30 +5,23 @@ mod messages;
 mod response;
 
 use images::PNG;
-use tcg::{sets, set_names, pokemon, colour_map};
+use tcg::{set_names, pokemon, colour_map};
 use response::{CardData, ApiError};
+use crate::images::download_image;
 
 
 use poise::serenity_prelude as serenity;
 use futures::{Stream, StreamExt};
-use std::collections::HashMap;
 use reqwest;
-use reqwest::Client;
-use serde::{Serialize, Deserialize};
+use std::{
+    fs::File,
+    path::Path,
+};
+use poise::serenity_prelude::AttachmentType;
 
 pub struct Data {} // User data, which is stored and accessible in all command invocations
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
-
-use std::time::Duration;
-use std::fs::File;
-use std::future::Future;
-use std::io::Write;
-use std::ops::Add;
-use std::path::Path;
-use poise::serenity_prelude::AttachmentType;
-use crate::images::download_image;
-
 
 #[poise::command(slash_command)]
 async fn pokemon_set(

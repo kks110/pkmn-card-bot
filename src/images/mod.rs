@@ -1,9 +1,7 @@
 use std::fs::File;
-use std::io::{ErrorKind, Read};
+use std::io::{ErrorKind, Read, Write};
 use reqwest::Client;
-use std::path::Path;
-use std::io::Write;
-use futures::{Stream, StreamExt};
+use futures::StreamExt;
 use crate::Error;
 
 const VALID_PNG_SIGNATURE: [u8; 8] = [137, 80, 78, 71, 13, 10, 26, 10];
