@@ -35,7 +35,6 @@ impl PNG {
     }
 }
 
-
 pub async fn download_image(url: &str, mut file: &File) -> Result<(), Error> {
     let client = Client::new();
     let res = client
@@ -53,6 +52,6 @@ pub async fn download_image(url: &str, mut file: &File) -> Result<(), Error> {
             .or(Err(format!("Error while writing to file")))?;
     }
 
-
+    println!("Download complete");
     Ok(())
 }
