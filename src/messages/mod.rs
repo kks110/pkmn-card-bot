@@ -4,15 +4,22 @@ use poise::serenity_prelude::AttachmentType;
 use std::path::Path;
 use poise::serenity_prelude::Colour;
 
-pub async fn send_error_message<D: ToString, T, U, It>(ctx: Context<'_>, title: D, fields: It) -> Result<(), Error>
+pub async fn send_message<
+    D: ToString,
+    T,
+    U,
+    It
+>(ctx: Context<'_>, title: D, fields: It, error: bool) -> Result<(), Error>
     where
         It: IntoIterator<Item = (T, U, bool)>,
         T: ToString,
         U: ToString,
 {
+    let colour = if error { 0xcc0000 } else { 0xcc8800 };
+
     ctx.send(|b| {
         b.embed(|b| {
-            b.colour(0xcc0000)
+            b.colour(colour)
                 .title(title)
                 .fields(fields)
         })

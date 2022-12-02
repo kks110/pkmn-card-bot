@@ -3,7 +3,6 @@ use crate::Error;
 use crate::url;
 use crate::response::{CardData, ApiError};
 use crate::messages;
-use crate::PNG;
 use crate::images;
 use crate::tcg;
 
@@ -11,7 +10,6 @@ use std::{
     fs::File,
     path::Path,
 };
-use poise::serenity_prelude::AttachmentType;
 use futures::{Stream, StreamExt};
 
 #[poise::command(
@@ -31,13 +29,14 @@ pub async fn execute(
     #[lazy]
     card_number: Option<u32>,
 ) -> Result<(), Error> {
-    let url = url::builder(pokemon, set, card_number);
+    let url = url::builder(&pokemon, &set, card_number);
 
     let api_response = reqwest::get(url)
         .await?
         .text()
         .await?;
 
+    // TODO: Make a fields builder
     if api_response.contains("\"error\":") {
         let parsed_data: ApiError = serde_json::from_str(&api_response)?;
         let mut fields: Vec<(String, String, bool)> = vec![];
@@ -54,14 +53,43 @@ pub async fn execute(
              false
             )
         );
-        messages::send_error_message(ctx, "An error occurred!", fields).await?;
+        messages::send_message(ctx, "An error occurred!", fields, true).await?;
 
         return Ok(())
     }
 
     let parsed_data: CardData = serde_json::from_str(&api_response)?;
 
-    // TODO: if response is empty return message
+    if parsed_data.data.is_empty() {
+        let mut fields: Vec<(String, String, bool)> = vec![];
+
+        fields.push(
+            (format!("Pokemon"),
+             format!("{}", &pokemon),
+             false
+            )
+        );
+
+        if let Some(card_number) = card_number {
+            fields.push(
+                (format!("Card Number"),
+                 format!("{}", card_number),
+                 false
+                )
+            );
+        }
+
+        if let Some(set) = set {
+            fields.push(
+                (format!("Set"),
+                 format!("{}", &set),
+                 false
+                )
+            );
+        }
+
+        messages::send_message(ctx, "Can't find a card with these options", fields, false).await?;
+    }
 
     for card in parsed_data.data {
         let file_name = format!("{}.png", card.id);
@@ -75,7 +103,7 @@ pub async fn execute(
             file = File::create(&path).or(Err(format!("Failed to create file '{}'", &path)))?;
             images::download_image(&url, &file).await?;
         }
-        while PNG::open(&path).is_err() {
+        while images::PNG::open(&path).is_err() {
             println!("File has an error, trying again");
             std::fs::remove_file(&path)?;
             file = File::create(&path).or(Err(format!("Failed to create file '{}'", &path)))?;
