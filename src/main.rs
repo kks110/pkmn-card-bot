@@ -22,10 +22,12 @@ type Context<'a> = poise::Context<'a, Data, Error>;
 
 use std::time::Duration;
 use std::fs::File;
+use std::future::Future;
 use std::io::Write;
 use std::ops::Add;
 use std::path::Path;
 use poise::serenity_prelude::AttachmentType;
+use crate::images::download_image;
 
 
 #[poise::command(slash_command)]
@@ -42,9 +44,6 @@ async fn pokemon_set(
     #[lazy]
     card_number: Option<u32>,
 ) -> Result<(), Error> {
-    // TODO: add better error responses
-    // eg. set invalid, cant find card
-
     let url = url::builder(pokemon, set, card_number);
 
     let api_response = reqwest::get(url)
@@ -79,41 +78,19 @@ async fn pokemon_set(
         let file_name = format!("{}.png", card.id);
         let path = format!("D:/Users/Kev/Pictures/{}", file_name);
         let url = &card.images.small;
-        let client = Client::new();
-        let res = client
-            .get(url)
-            .send()
-            .await
-            .or(Err(format!("Failed to GET from '{}'", &url)))?;
 
         let mut file;
-        let mut stream = res.bytes_stream();
 
-        println!("Seeking in file.");
-        if Path::new(&path).exists() {
-            println!("File exists. Resuming.");
-            file = std::fs::OpenOptions::new()
-                .read(true)
-                .append(true)
-                .open(&path)
-                .unwrap();
-        } else {
-            println!("Fresh file..");
+        if !Path::new(&path).exists() {
+            println!("File doesnt exist. Creating");
             file = File::create(&path).or(Err(format!("Failed to create file '{}'", &path)))?;
+            download_image(&url, &file).await?;
         }
-
-        println!("Commencing transfer");
-        while let Some(item) = stream.next().await {
-            let chunk = item.or(Err(format!("Error while downloading file")))?;
-            file.write(&chunk)
-                .or(Err(format!("Error while writing to file")))?;
-        }
-
-        // TODO: retry download if if file is invalid
-        let png = PNG::open(&path);
-        match png {
-            Ok(..) => println!("Downloaded successfully"),
-            Err(e) => println!("An error occurred: {}", e)
+        while PNG::open(&path).is_err() {
+            println!("File had an error, trying again");
+            std::fs::remove_file(&path)?;
+            file = File::create(&path).or(Err(format!("Failed to create file '{}'", &path)))?;
+            download_image(&url, &file).await?;
         }
 
         let mut fields: Vec<(String, String, bool)> = vec![];

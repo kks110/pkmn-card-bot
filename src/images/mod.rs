@@ -1,5 +1,10 @@
 use std::fs::File;
 use std::io::{ErrorKind, Read};
+use reqwest::Client;
+use std::path::Path;
+use std::io::Write;
+use futures::{Stream, StreamExt};
+use crate::Error;
 
 const VALID_PNG_SIGNATURE: [u8; 8] = [137, 80, 78, 71, 13, 10, 26, 10];
 pub struct PNG {
@@ -30,4 +35,26 @@ impl PNG {
             buffer == VALID_PNG_SIGNATURE
         }
     }
+}
+
+
+pub async fn download_image(url: &str, mut file: &File) -> Result<(), Error> {
+    let client = Client::new();
+    let res = client
+        .get(url)
+        .send()
+        .await
+        .or(Err(format!("Failed to GET from '{}'", url)))?;
+
+    let mut stream = res.bytes_stream();
+
+    println!("Commencing transfer");
+    while let Some(item) = stream.next().await {
+        let chunk = item.or(Err(format!("Error while downloading file")))?;
+        file.write(&chunk)
+            .or(Err(format!("Error while writing to file")))?;
+    }
+
+
+    Ok(())
 }
