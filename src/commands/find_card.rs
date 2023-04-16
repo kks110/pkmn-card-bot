@@ -27,9 +27,9 @@ pub async fn execute(
     pokemon: String,
     #[description = "The card number in the set"]
     #[lazy]
-    card_number: Option<u32>,
+    card_number: Option<String>,
 ) -> Result<(), Error> {
-    let url = url::builder(&pokemon, &set, card_number);
+    let url = url::builder(&pokemon, &set, &card_number);
 
     let api_response = reqwest::get(url)
         .await?

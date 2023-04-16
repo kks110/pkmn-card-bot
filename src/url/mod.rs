@@ -1,6 +1,6 @@
 use crate::tcg::sets;
 
-pub fn builder(pokemon: &String, set: &Option<String>, card_number: Option<u32>) -> String {
+pub fn builder(pokemon: &String, set: &Option<String>, card_number: &Option<String>) -> String {
     let mut url = format!("https://api.pokemontcg.io/v2/cards?q=name:{}", pokemon);
     if let Some(set) = set {
         let set_query = format!(" set.id:{}", sets()[&set as &str]);
