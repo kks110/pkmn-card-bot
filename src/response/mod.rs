@@ -36,7 +36,9 @@ pub struct Cardmarket {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Prices {
-    pub average_sell_price: Option<f32>
+    pub avg_30: Option<f32>,
+    pub reverse_holo_avg_30: Option<f32>,
+    pub low_price_ex_plus: Option<f32>
 }
 
 #[derive(Serialize, Deserialize, Debug)]

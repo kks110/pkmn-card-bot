@@ -29,6 +29,8 @@ pub async fn execute(
     #[lazy]
     card_number: Option<String>,
 ) -> Result<(), Error> {
+    let image_root = std::env::var("IMAGE_PATH").expect("missing image path");
+
     let url = url::builder(&pokemon, &set, &card_number);
 
     let api_response = reqwest::get(url)
@@ -93,8 +95,8 @@ pub async fn execute(
 
     for card in parsed_data.data {
         let file_name = format!("{}.png", card.id);
-        let path = format!("D:/Users/Kev/Pictures/{}", file_name);
-        let url = &card.images.small;
+        let path = format!("{}{}", image_root, file_name);
+        let url = &card.images.large;
 
         let mut file;
 
@@ -123,14 +125,28 @@ pub async fn execute(
              false
             )
         );
-        if let Some(price) = card.cardmarket.prices.average_sell_price {
-            fields.push(
-                (format!("Average Sell price"),
-                 format!("{}€", price),
-                 false
-                )
-            );
+
+        let mut price_data: String = "".to_string();
+        if let Some(price) = card.cardmarket.prices.low_price_ex_plus {
+            price_data.push_str(&format!("⦁ Lowest price (EX and higher): {}€\n", price));
         }
+
+        if let Some(price) = card.cardmarket.prices.avg_30 {
+            price_data.push_str(&format!("⦁ 30 day average: {}€\n", price));
+        }
+
+        if let Some(price) = card.cardmarket.prices.reverse_holo_avg_30 {
+            if price > 0.0 {
+                price_data.push_str(&format!("⦁ 30 day reverse holo average: {}€\n", price));
+            }
+        }
+
+        fields.push(
+            (format!("Prices:"),
+             price_data,
+             false
+            )
+        );
 
         let message_colour = tcg::colour_map(card.types.first().unwrap().as_str());
 
