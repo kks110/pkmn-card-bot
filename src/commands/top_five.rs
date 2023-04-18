@@ -13,8 +13,8 @@ use std::{
 use futures::{Stream, StreamExt};
 
 #[poise::command(
-    slash_command,
-    rename = "find_cards"
+slash_command,
+rename = "top_five"
 )]
 pub async fn execute(
     ctx: Context<'_>,
@@ -24,15 +24,29 @@ pub async fn execute(
     set: Option<String>,
     #[description = "Which Pokemon / Trainer"]
     #[autocomplete = "autocomplete_pokemon"]
-    pokemon: String,
-    #[description = "The card number in the set"]
     #[lazy]
-    card_number: Option<String>,
+    pokemon: Option<String>,
 ) -> Result<(), Error> {
     let image_root = std::env::var("IMAGE_PATH").expect("missing image path");
+    println!("before the none check");
+    if pokemon.is_none() && set.is_none() {
+        let mut fields: Vec<(String, String, bool)> = vec![];
 
-    let url = url::find_card(&pokemon, &set, &card_number);
+        fields.push(
+            (format!("Error:"),
+             format!("Please enter either a Pokemon or a Set"),
+             false
+            )
+        );
+        messages::send_message(ctx, "An error occurred!", fields, true).await?;
 
+        return Ok(())
+    }
+
+    println!("generating URL");
+    let url = url::find_top_five(&pokemon, &set);
+
+    println!("URL: {}", url);
     let api_response = reqwest::get(url)
         .await?
         .text()
@@ -60,22 +74,20 @@ pub async fn execute(
         return Ok(())
     }
 
+    println!("parsing data");
+    println!("{:?}", api_response);
     let parsed_data: CardData = serde_json::from_str(&api_response)?;
+    println!("parsed");
 
     if parsed_data.data.is_empty() {
+        println!("ITS EMPTY!");
         let mut fields: Vec<(String, String, bool)> = vec![];
 
-        fields.push(
-            (format!("Pokemon"),
-             format!("{}", &pokemon),
-             false
-            )
-        );
 
-        if let Some(card_number) = card_number {
+        if let Some(pokemon) = pokemon {
             fields.push(
-                (format!("Card Number"),
-                 format!("{}", card_number),
+                (format!("Pokemon"),
+                 format!("{}", pokemon),
                  false
                 )
             );
@@ -94,6 +106,7 @@ pub async fn execute(
     }
 
     for card in parsed_data.data {
+        println!("looping cards");
         let file_name = format!("{}.png", card.id);
         let path = format!("{}{}", image_root, file_name);
         let url = &card.images.large;

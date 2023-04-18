@@ -13,7 +13,7 @@ pub struct Card {
     pub images: Images,
     pub set: Set,
     pub cardmarket: Cardmarket,
-    pub types: Vec<String>
+    pub types: Option<Vec<String>>
 }
 
 #[derive(Serialize, Deserialize, Debug)]
