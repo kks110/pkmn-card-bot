@@ -57,7 +57,9 @@ async fn main() {
         .intents(serenity::GatewayIntents::non_privileged() | serenity::GatewayIntents::MESSAGE_CONTENT)
         .setup(|ctx, _ready, framework| {
             Box::pin(async move {
-                poise::serenity_prelude::GuildId(844882826930421800)
+                poise::serenity_prelude::GuildId(
+                    std::env::var("GUILD_ID").expect("missing GUILD_ID").parse().expect("Guild ID should be a number")
+                )
                     .set_application_commands(ctx, |b| {
                         *b = poise::builtins::create_application_commands(
                             &framework.options().commands,

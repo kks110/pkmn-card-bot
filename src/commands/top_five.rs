@@ -148,6 +148,10 @@ pub async fn execute(
             price_data.push_str(&format!("⦁ 30 day average: {}€\n", price));
         }
 
+        if let Some(price) = card.cardmarket.prices.trend_price {
+            price_data.push_str(&format!("⦁ Trend Price: {}€\n", price));
+        }
+
         if let Some(price) = card.cardmarket.prices.reverse_holo_avg_30 {
             if price > 0.0 {
                 price_data.push_str(&format!("⦁ 30 day reverse holo average: {}€\n", price));
