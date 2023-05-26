@@ -1,5 +1,3 @@
-pub mod fields;
-
 use crate::Context;
 use crate::Error;
 use poise::serenity_prelude::AttachmentType;
