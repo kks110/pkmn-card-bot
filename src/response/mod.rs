@@ -9,7 +9,7 @@ pub struct CardData {
 pub struct Card {
     pub id: String,
     pub name: String,
-    pub rarity: String,
+    pub rarity: Option<String>,
     pub images: Images,
     pub set: Set,
     pub cardmarket: Cardmarket,

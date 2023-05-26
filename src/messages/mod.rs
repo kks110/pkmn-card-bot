@@ -5,6 +5,22 @@ use std::path::Path;
 use poise::serenity_prelude::Colour;
 use crate::response::ApiError;
 
+pub fn process_option_fields(fields: Vec<(String, Option<String>)>) -> Vec<(String, String, bool)> {
+    let mut processed_fields: Vec<(String, String, bool)> = vec![];
+    for (title, body) in fields {
+        if let Some(body) = body {
+            processed_fields.push(
+                (
+                    title,
+                    body,
+                    false
+                )
+            )
+        }
+    }
+    processed_fields
+}
+
 pub async fn send_message<
     D: ToString,
     T,
@@ -22,35 +38,6 @@ pub async fn send_message<
         b.embed(|b| {
             b.colour(colour)
                 .title(title)
-                .fields(fields)
-        })
-    }).await?;
-
-    Ok(())
-}
-
-pub async fn send_error_message(ctx: Context<'_>, parsed_data: ApiError) -> Result<(), Error> {
-    let mut fields: Vec<(String, String, bool)> = vec![];
-
-    fields.push(
-        (format!("Code"),
-         format!("{}", parsed_data.error.code),
-         false
-        )
-    );
-    fields.push(
-        (format!("Message"),
-         format!("{}", parsed_data.error.message),
-         false
-        )
-    );
-
-    let colour = 0xcc0000;
-
-    ctx.send(|b| {
-        b.embed(|b| {
-            b.colour(colour)
-                .title("An error occurred!")
                 .fields(fields)
         })
     }).await?;

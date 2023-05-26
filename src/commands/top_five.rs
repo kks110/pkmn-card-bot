@@ -6,6 +6,7 @@ use crate::messages;
 use crate::images;
 use crate::tcg;
 use crate::helpers::*;
+use crate::messages::process_option_fields;
 
 #[poise::command(
 slash_command,
@@ -20,33 +21,34 @@ pub async fn execute(
     #[description = "Which Pokemon / Trainer"]
     #[autocomplete = "autocomplete_pokemon"]
     #[lazy]
-    pokemon: Option<String>,
+    card_name: Option<String>,
 ) -> Result<(), Error> {
-    if pokemon.is_none() && set.is_none() {
-        let mut fields: Vec<(String, String, bool)> = vec![];
+    if card_name.is_none() && set.is_none() {
+        let mut fields: Vec<(String, String, bool)> = vec![
+            ("Error:".to_string(), "Please enter either a Pokemon / Trainer or a Set".to_string(), false),
+        ];
 
-        fields.push(
-            (format!("Error:"),
-             format!("Please enter either a Pokemon or a Set"),
-             false
-            )
-        );
         messages::send_message(ctx, "An error occurred!", fields, true).await?;
 
         return Ok(())
     }
 
-    let url = url::find_top_five(&pokemon, &set);
+    let url = url::find_top_five(&card_name, &set);
 
     let api_response = reqwest::get(url)
         .await?
         .text()
         .await?;
 
-    // TODO: Make a fields builder
     if api_response.contains("\"error\":") {
         let parsed_data: ApiError = serde_json::from_str(&api_response)?;
-        messages::send_error_message(ctx, parsed_data).await?;
+
+        let mut fields: Vec<(String, String, bool)> = vec![
+            ("Code".to_string(), parsed_data.error.code.to_string(), false),
+            ("Message".to_string(), parsed_data.error.message, false),
+        ];
+
+        messages::send_message(ctx, "An error occurred!", fields, true).await?;
 
         return Ok(())
     }
@@ -54,25 +56,12 @@ pub async fn execute(
     let parsed_data: CardData = serde_json::from_str(&api_response)?;
 
     if parsed_data.data.is_empty() {
-        let mut fields: Vec<(String, String, bool)> = vec![];
+        let mut fields: Vec<(String, Option<String>)> = vec![
+            ("Card Name".to_string(), card_name),
+            ("Set".to_string(), set)
+        ];
 
-        if let Some(pokemon) = pokemon {
-            fields.push(
-                (format!("Pokemon"),
-                 format!("{}", pokemon),
-                 false
-                )
-            );
-        }
-
-        if let Some(set) = set {
-            fields.push(
-                (format!("Set"),
-                 format!("{}", &set),
-                 false
-                )
-            );
-        }
+        let fields = process_option_fields(fields);
 
         messages::send_message(ctx, "Can't find a card with these options", fields, false).await?;
     }
@@ -80,31 +69,17 @@ pub async fn execute(
     for card in parsed_data.data {
         let file_name = format!("{}.png", card.id);
         let url = &card.images.large;
-
-        let file_path = images::download_image(&file_name, &url).await?;
-
-        let mut fields: Vec<(String, String, bool)> = vec![];
-        fields.push(
-            (format!("Rarity"),
-             format!("{}", card.rarity),
-             false
-            )
-        );
-        fields.push(
-            (format!("Set"),
-             format!("{}", card.set.name),
-             false
-            )
-        );
+        let image_file_path = images::download_image(&file_name, &url).await?;
 
         let mut price_data: String = price_data_string_builder(&card);
 
-        fields.push(
-            (format!("Prices:"),
-             price_data,
-             false
-            )
-        );
+        let mut fields: Vec<(String, Option<String>)> = vec![
+            ("Rarity".to_string(), card.rarity),
+            ("Set".to_string(), Some(card.set.name)),
+            ("Prices:".to_string(), Some(price_data)),
+        ];
+
+        let fields = process_option_fields(fields);
 
         let message_colour: i32;
         if let Some(types) = card.types {
@@ -118,7 +93,7 @@ pub async fn execute(
             &card.name,
             fields,
             &file_name,
-            &file_path,
+            &image_file_path,
             message_colour
         ).await?;
     }
