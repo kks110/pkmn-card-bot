@@ -5,12 +5,12 @@ use crate::response::{CardData, ApiError};
 use crate::messages;
 use crate::images;
 use crate::tcg;
+use crate::helpers::*;
 
 use std::{
     fs::File,
     path::Path,
 };
-use futures::{Stream, StreamExt};
 
 #[poise::command(
     slash_command,
@@ -41,21 +41,7 @@ pub async fn execute(
     // TODO: Make a fields builder
     if api_response.contains("\"error\":") {
         let parsed_data: ApiError = serde_json::from_str(&api_response)?;
-        let mut fields: Vec<(String, String, bool)> = vec![];
-
-        fields.push(
-            (format!("Code"),
-             format!("{}", parsed_data.error.code),
-             false
-            )
-        );
-        fields.push(
-            (format!("Message"),
-             format!("{}", parsed_data.error.message),
-             false
-            )
-        );
-        messages::send_message(ctx, "An error occurred!", fields, true).await?;
+        messages::send_error_message(ctx, parsed_data).await?;
 
         return Ok(())
     }
@@ -95,22 +81,9 @@ pub async fn execute(
 
     for card in parsed_data.data {
         let file_name = format!("{}.png", card.id);
-        let path = format!("{}{}", image_root, file_name);
         let url = &card.images.large;
 
-        let mut file;
-
-        if !Path::new(&path).exists() {
-            println!("File doesnt exist. Creating");
-            file = File::create(&path).or(Err(format!("Failed to create file '{}'", &path)))?;
-            images::download_image(&url, &file).await?;
-        }
-        while images::PNG::open(&path).is_err() {
-            println!("File has an error, trying again");
-            std::fs::remove_file(&path)?;
-            file = File::create(&path).or(Err(format!("Failed to create file '{}'", &path)))?;
-            images::download_image(&url, &file).await?;
-        }
+        let file_path = images::download_image(&file_name, &url).await?;
 
         let mut fields: Vec<(String, String, bool)> = vec![];
         fields.push(
@@ -164,28 +137,10 @@ pub async fn execute(
             &card.name,
             fields,
             &file_name,
-            &path,
+            &file_path,
             message_colour
         ).await?;
     }
 
     Ok(())
-}
-
-async fn autocomplete_pokemon<'a>(
-    _ctx: Context<'_>,
-    partial: &'a str,
-) -> impl Stream<Item = String> + 'a {
-    futures::stream::iter(tcg::pokemon())
-        .filter(move |pkmn| futures::future::ready(pkmn.starts_with(partial)))
-        .map(|name| name.to_string())
-}
-
-async fn autocomplete_sets<'a>(
-    _ctx: Context<'_>,
-    partial: &'a str,
-) -> impl Stream<Item = String> + 'a {
-    futures::stream::iter(tcg::set_names())
-        .filter(move |set| futures::future::ready(set.starts_with(partial)))
-        .map(|name| name.to_string())
 }

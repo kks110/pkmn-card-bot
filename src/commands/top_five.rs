@@ -5,12 +5,7 @@ use crate::response::{CardData, ApiError};
 use crate::messages;
 use crate::images;
 use crate::tcg;
-
-use std::{
-    fs::File,
-    path::Path,
-};
-use futures::{Stream, StreamExt};
+use crate::helpers::*;
 
 #[poise::command(
 slash_command,
@@ -27,8 +22,6 @@ pub async fn execute(
     #[lazy]
     pokemon: Option<String>,
 ) -> Result<(), Error> {
-    let image_root = std::env::var("IMAGE_PATH").expect("missing image path");
-    println!("before the none check");
     if pokemon.is_none() && set.is_none() {
         let mut fields: Vec<(String, String, bool)> = vec![];
 
@@ -43,10 +36,8 @@ pub async fn execute(
         return Ok(())
     }
 
-    println!("generating URL");
     let url = url::find_top_five(&pokemon, &set);
 
-    println!("URL: {}", url);
     let api_response = reqwest::get(url)
         .await?
         .text()
@@ -55,34 +46,15 @@ pub async fn execute(
     // TODO: Make a fields builder
     if api_response.contains("\"error\":") {
         let parsed_data: ApiError = serde_json::from_str(&api_response)?;
-        let mut fields: Vec<(String, String, bool)> = vec![];
-
-        fields.push(
-            (format!("Code"),
-             format!("{}", parsed_data.error.code),
-             false
-            )
-        );
-        fields.push(
-            (format!("Message"),
-             format!("{}", parsed_data.error.message),
-             false
-            )
-        );
-        messages::send_message(ctx, "An error occurred!", fields, true).await?;
+        messages::send_error_message(ctx, parsed_data).await?;
 
         return Ok(())
     }
 
-    println!("parsing data");
-    println!("{:?}", api_response);
     let parsed_data: CardData = serde_json::from_str(&api_response)?;
-    println!("parsed");
 
     if parsed_data.data.is_empty() {
-        println!("ITS EMPTY!");
         let mut fields: Vec<(String, String, bool)> = vec![];
-
 
         if let Some(pokemon) = pokemon {
             fields.push(
@@ -106,24 +78,10 @@ pub async fn execute(
     }
 
     for card in parsed_data.data {
-        println!("looping cards");
         let file_name = format!("{}.png", card.id);
-        let path = format!("{}{}", image_root, file_name);
         let url = &card.images.large;
 
-        let mut file;
-
-        if !Path::new(&path).exists() {
-            println!("File doesnt exist. Creating");
-            file = File::create(&path).or(Err(format!("Failed to create file '{}'", &path)))?;
-            images::download_image(&url, &file).await?;
-        }
-        while images::PNG::open(&path).is_err() {
-            println!("File has an error, trying again");
-            std::fs::remove_file(&path)?;
-            file = File::create(&path).or(Err(format!("Failed to create file '{}'", &path)))?;
-            images::download_image(&url, &file).await?;
-        }
+        let file_path = images::download_image(&file_name, &url).await?;
 
         let mut fields: Vec<(String, String, bool)> = vec![];
         fields.push(
@@ -177,28 +135,10 @@ pub async fn execute(
             &card.name,
             fields,
             &file_name,
-            &path,
+            &file_path,
             message_colour
         ).await?;
     }
 
     Ok(())
-}
-
-async fn autocomplete_pokemon<'a>(
-    _ctx: Context<'_>,
-    partial: &'a str,
-) -> impl Stream<Item = String> + 'a {
-    futures::stream::iter(tcg::pokemon())
-        .filter(move |pkmn| futures::future::ready(pkmn.starts_with(partial)))
-        .map(|name| name.to_string())
-}
-
-async fn autocomplete_sets<'a>(
-    _ctx: Context<'_>,
-    partial: &'a str,
-) -> impl Stream<Item = String> + 'a {
-    futures::stream::iter(tcg::set_names())
-        .filter(move |set| futures::future::ready(set.starts_with(partial)))
-        .map(|name| name.to_string())
 }

@@ -4,6 +4,7 @@ mod url;
 mod messages;
 mod response;
 mod commands;
+mod helpers;
 
 use commands::*;
 use poise::serenity_prelude as serenity;
