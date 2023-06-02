@@ -76,7 +76,7 @@ pub async fn send_card_message(ctx: Context<'_>, card: Card) -> Result<(), Error
     println!("in send card");
     let file_name = format!("{}.png", card.id);
     let url = &card.images.large;
-    let image_file_path = images::download_image(&file_name, &url).await?;
+    let image_file_path = images::download_image(&file_name, url).await?;
 
     let price_data: String = price_data_string_builder(&card);
 
