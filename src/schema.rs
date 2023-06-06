@@ -2,9 +2,9 @@
 
 diesel::table! {
     exchange_rates (id) {
-        id -> Nullable<Integer>,
+        id -> Integer,
         base -> Text,
         gbp -> Float,
-        updated_at -> Timestamp,
+        updated_at -> Text,
     }
 }

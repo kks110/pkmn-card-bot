@@ -1,33 +1,30 @@
 use chrono::{NaiveDate, Utc, Duration};
 use serde::{Deserialize, Serialize};
+use diesel::prelude::*;
+use crate::schema::*;
+
+// Structs for Exchange Rate database data
+#[derive(Queryable, Selectable)]
+#[diesel(table_name = exchange_rates)]
+#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+pub struct ExchangeRate {
+    pub id: i32,
+    pub base: String,
+    pub gbp: f32,
+    pub updated_at: String
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = exchange_rates)]
+pub struct NewExchangeRate<'a> {
+    pub base: &'a str,
+    pub gbp: f32,
+}
+// -------------------------------------
 
 // Structs for shared app data
-#[derive(Debug, Deserialize, Serialize)]
-pub struct Data {
-    pub data_version: f32,
-    pub euro_conversion_rate: f64,
-    pub date_of_rate: NaiveDate
-}
-
-impl Data {
-    pub fn new() -> Data {
-        let yesterday = Utc::now().date_naive() - Duration::days(1);
-
-        Data {
-            data_version: crate::CURRENT_DATA_VERSION,
-            date_of_rate: yesterday,
-            euro_conversion_rate: 0.0
-        }
-    }
-
-    pub fn set_date_of_rate(&mut self, date: NaiveDate) {
-        self.date_of_rate = date;
-    }
-
-    pub fn set_euro_conversion_rate(&mut self, rate: f64) {
-        self.euro_conversion_rate = rate;
-    }
-}
+#[derive(Debug)]
+pub struct Data {}
 // -------------------------------------
 
 

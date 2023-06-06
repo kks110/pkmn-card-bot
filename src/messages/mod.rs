@@ -1,4 +1,4 @@
-use crate::{Context, images, tcg};
+use crate::{Context, database, images, tcg};
 use crate::Error;
 use poise::serenity_prelude::AttachmentType;
 use std::path::Path;
@@ -78,7 +78,7 @@ pub async fn send_card_message(ctx: Context<'_>, card: Card) -> Result<(), Error
     let url = &card.images.large;
     let image_file_path = images::download_image(&file_name, url).await?;
 
-    let conversion_rate = ctx.data().euro_conversion_rate;
+    let conversion_rate = database::get_exchange_rates("EUR");
     let price_data: String = price_data_string_builder(&card, conversion_rate);
 
     let fields: Vec<(String, Option<String>)> = vec![

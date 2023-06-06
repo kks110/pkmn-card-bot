@@ -5,12 +5,12 @@ mod messages;
 mod models;
 mod commands;
 mod helpers;
+mod database;
+mod schema;
 
 use commands::*;
 use poise::serenity_prelude as serenity;
 use models::Data;
-
-const CURRENT_DATA_VERSION: f32 = 0.1;
 
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
@@ -36,11 +36,7 @@ async fn on_error(error: poise::FrameworkError<'_, Data, Error>) {
 async fn main() {
     dotenv::dotenv().ok();
 
-    let data = match helpers::load_app_data().await {
-        Ok(a) => { a }
-        Err(e) => { panic!("Error occurred starting up: {}", e); }
-    };
-    println!("Data Loaded: {:?}", data);
+    helpers::load_app_data().await;
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
@@ -77,7 +73,7 @@ async fn main() {
                     })
                     .await
                     .unwrap();
-                Ok(data)
+                Ok(Data{})
             })
         });
 
