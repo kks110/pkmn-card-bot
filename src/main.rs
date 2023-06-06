@@ -7,6 +7,7 @@ mod commands;
 mod helpers;
 mod database;
 mod schema;
+mod initialisers;
 
 use chrono::{NaiveDate, Utc};
 use commands::*;
@@ -65,9 +66,8 @@ async fn on_error(error: poise::FrameworkError<'_, Data, Error>) {
 async fn main() {
     dotenv::dotenv().ok();
 
-    // TODO: Probably create a seperate start up section
-    // TODO: Add DB migrations to run here
-    helpers::get_initial_exchange_rate().await;
+    initialisers::get_initial_exchange_rate().await;
+    initialisers::run_all_migrations();
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
