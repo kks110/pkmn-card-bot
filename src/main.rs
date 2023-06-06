@@ -66,7 +66,7 @@ async fn main() {
     dotenv::dotenv().ok();
 
     // TODO: Probably create a seperate start up section
-    // TODO: Add DB migrations to run her
+    // TODO: Add DB migrations to run here
     helpers::get_initial_exchange_rate().await;
 
     let framework = poise::Framework::builder()
