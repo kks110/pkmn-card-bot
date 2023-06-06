@@ -1,7 +1,7 @@
 use crate::Context;
 use crate::Error;
 use crate::url;
-use crate::response::{CardData, ApiError};
+use crate::models::{CardData, ApiError};
 use crate::messages;
 use crate::helpers::*;
 

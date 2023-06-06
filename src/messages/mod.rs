@@ -4,7 +4,7 @@ use poise::serenity_prelude::AttachmentType;
 use std::path::Path;
 use poise::serenity_prelude::Colour;
 use crate::helpers::price_data_string_builder;
-use crate::response::Card;
+use crate::models::Card;
 
 pub fn process_option_fields(fields: Vec<(String, Option<String>)>) -> Vec<(String, String, bool)> {
     let mut processed_fields: Vec<(String, String, bool)> = vec![];
@@ -78,7 +78,8 @@ pub async fn send_card_message(ctx: Context<'_>, card: Card) -> Result<(), Error
     let url = &card.images.large;
     let image_file_path = images::download_image(&file_name, url).await?;
 
-    let price_data: String = price_data_string_builder(&card);
+    let conversion_rate = ctx.data().euro_conversion_rate;
+    let price_data: String = price_data_string_builder(&card, conversion_rate);
 
     let fields: Vec<(String, Option<String>)> = vec![
         ("Rarity".to_string(), card.rarity),

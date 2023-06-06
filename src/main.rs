@@ -2,14 +2,16 @@ mod images;
 mod tcg;
 mod url;
 mod messages;
-mod response;
+mod models;
 mod commands;
 mod helpers;
 
 use commands::*;
 use poise::serenity_prelude as serenity;
+use models::Data;
 
-pub struct Data {} // User data, which is stored and accessible in all command invocations
+const CURRENT_DATA_VERSION: f32 = 0.1;
+
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
 
@@ -34,6 +36,12 @@ async fn on_error(error: poise::FrameworkError<'_, Data, Error>) {
 async fn main() {
     dotenv::dotenv().ok();
 
+    let data = match helpers::load_app_data().await {
+        Ok(a) => { a }
+        Err(e) => { panic!("Error occurred starting up: {}", e); }
+    };
+    println!("Data Loaded: {:?}", data);
+
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
             commands: vec![
@@ -56,7 +64,7 @@ async fn main() {
         })
         .token(std::env::var("DISCORD_TOKEN").expect("missing DISCORD_TOKEN"))
         .intents(serenity::GatewayIntents::non_privileged() | serenity::GatewayIntents::MESSAGE_CONTENT)
-        .setup(|ctx, _ready, framework| {
+        .setup(move |ctx, _ready, framework| {
             Box::pin(async move {
                 poise::serenity_prelude::GuildId(
                     std::env::var("GUILD_ID").expect("missing GUILD_ID").parse().expect("Guild ID should be a number")
@@ -69,7 +77,7 @@ async fn main() {
                     })
                     .await
                     .unwrap();
-                Ok(Data {})
+                Ok(data)
             })
         });
 
