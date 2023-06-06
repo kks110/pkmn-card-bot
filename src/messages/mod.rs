@@ -73,13 +73,11 @@ pub async fn send_message_with_image<D: ToString, T, U, It, C: Into<Colour>>(
 }
 
 pub async fn send_card_message(ctx: Context<'_>, card: Card) -> Result<(), Error> {
-    println!("in send card");
     let file_name = format!("{}.png", card.id);
     let url = &card.images.large;
     let image_file_path = images::download_image(&file_name, url).await?;
 
-    let conversion_rate = database::get_exchange_rates("EUR");
-    let price_data: String = price_data_string_builder(&card, conversion_rate);
+    let price_data: String = price_data_string_builder(&card);
 
     let fields: Vec<(String, Option<String>)> = vec![
         ("Rarity".to_string(), card.rarity),

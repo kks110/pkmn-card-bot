@@ -22,13 +22,14 @@ pub struct NewExchangeRate<'a> {
 }
 // -------------------------------------
 
+
 // Structs for shared app data
 #[derive(Debug)]
 pub struct Data {}
 // -------------------------------------
 
 
-// Structs for the Currenct Exchange API
+// Structs for the Currency Exchange API
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "UPPERCASE")]
 pub struct Rates {
